@@ -174,8 +174,8 @@ function renderSpecTable() {
 // ==========================================
 function renderFeatureMatrix() {
     const container = document.getElementById('feature-matrix');
-    const brands = ['asus', 'lenovo', 'hp', 'dell', 'minisforum', 'gigabyte', 'acer'];
-    const brandLabels = ['ASUS PN70', 'Lenovo', 'HP', 'Dell', 'Minisforum', 'Gigabyte', 'Acer'];
+    const brands = ['asus', 'hp', 'beelink', 'gmktec', 'minisforum', 'dell', 'lenovo', 'acer'];
+    const brandLabels = ['ASUS PN70', 'HP Z2 Mini', 'Beelink GTR9', 'GMKtec EVO-X2', 'Minisforum', 'Dell', 'Lenovo', 'Acer'];
 
     let html = '<table><thead><tr><th>Feature</th>';
     brandLabels.forEach(b => html += `<th>${b}</th>`);
@@ -334,13 +334,14 @@ function createPositioningChart() {
         type: 'bubble',
         data: {
             datasets: [
-                { label: 'ASUS NUC PN70', data: [{ x: 85, y: 90, r: 15 }], backgroundColor: 'rgba(0,174,239,0.7)', borderColor: '#00AEEF' },
-                { label: 'Lenovo Neo Ultra', data: [{ x: 80, y: 85, r: 14 }], backgroundColor: 'rgba(88,166,255,0.7)', borderColor: '#58A6FF' },
-                { label: 'HP Z2 Mini G1a', data: [{ x: 75, y: 95, r: 14 }], backgroundColor: 'rgba(188,140,255,0.7)', borderColor: '#BC8CFF' },
-                { label: 'Dell OptiPlex', data: [{ x: 50, y: 60, r: 12 }], backgroundColor: 'rgba(240,136,62,0.7)', borderColor: '#F0883E' },
-                { label: 'Minisforum UMI2', data: [{ x: 80, y: 70, r: 13 }], backgroundColor: 'rgba(63,185,80,0.7)', borderColor: '#3FB950' },
-                { label: 'Gigabyte BRIX Pro', data: [{ x: 65, y: 65, r: 11 }], backgroundColor: 'rgba(210,153,34,0.7)', borderColor: '#D29922' },
-                { label: 'Acer Revo Box', data: [{ x: 40, y: 45, r: 10 }], backgroundColor: 'rgba(248,81,73,0.7)', borderColor: '#F85149' },
+                { label: 'ASUS NUC PN70', data: [{ x: 90, y: 80, r: 15 }], backgroundColor: 'rgba(0,174,239,0.7)', borderColor: '#00AEEF' },
+                { label: 'HP Z2 Mini G1a', data: [{ x: 88, y: 95, r: 15 }], backgroundColor: 'rgba(188,140,255,0.7)', borderColor: '#BC8CFF' },
+                { label: 'Beelink GTR9 Pro', data: [{ x: 88, y: 35, r: 12 }], backgroundColor: 'rgba(240,136,62,0.7)', borderColor: '#F0883E' },
+                { label: 'GMKtec EVO-X2 AI', data: [{ x: 86, y: 30, r: 12 }], backgroundColor: 'rgba(63,185,80,0.7)', borderColor: '#3FB950' },
+                { label: 'Minisforum MS-S1', data: [{ x: 87, y: 40, r: 12 }], backgroundColor: 'rgba(210,153,34,0.7)', borderColor: '#D29922' },
+                { label: 'Dell Pro Micro', data: [{ x: 35, y: 85, r: 10 }], backgroundColor: 'rgba(88,166,255,0.7)', borderColor: '#58A6FF' },
+                { label: 'Lenovo Neo 55q', data: [{ x: 45, y: 80, r: 10 }], backgroundColor: 'rgba(248,81,73,0.7)', borderColor: '#F85149' },
+                { label: 'Acer Revo Box', data: [{ x: 40, y: 30, r: 9 }], backgroundColor: 'rgba(255,255,255,0.4)', borderColor: '#aaa' },
             ]
         },
         options: {
@@ -371,10 +372,10 @@ function createRadarChart() {
         data: {
             labels: ['CPU Perf', 'GPU Perf', 'Memory', 'Storage', 'Form Factor', 'Connectivity', 'Enterprise', 'AI/NPU', 'Value'],
             datasets: [
-                { label: 'ASUS NUC PN70', data: [90, 90, 95, 80, 95, 90, 70, 90, 80], borderColor: '#00AEEF', backgroundColor: 'rgba(0,174,239,0.15)', pointBackgroundColor: '#00AEEF' },
-                { label: 'HP Z2 Mini G1a', data: [90, 90, 95, 85, 90, 90, 95, 90, 65], borderColor: '#BC8CFF', backgroundColor: 'rgba(188,140,255,0.1)', pointBackgroundColor: '#BC8CFF' },
-                { label: 'Lenovo Neo Ultra', data: [90, 90, 95, 95, 80, 90, 90, 90, 70], borderColor: '#58A6FF', backgroundColor: 'rgba(88,166,255,0.1)', pointBackgroundColor: '#58A6FF' },
-                { label: 'Minisforum UMI2', data: [90, 90, 95, 80, 90, 85, 40, 90, 90], borderColor: '#3FB950', backgroundColor: 'rgba(63,185,80,0.1)', pointBackgroundColor: '#3FB950' },
+                { label: 'ASUS NUC PN70', data: [92, 90, 100, 80, 95, 90, 75, 92, 80], borderColor: '#00AEEF', backgroundColor: 'rgba(0,174,239,0.15)', pointBackgroundColor: '#00AEEF' },
+                { label: 'HP Z2 Mini G1a', data: [92, 90, 90, 80, 88, 95, 98, 92, 60], borderColor: '#BC8CFF', backgroundColor: 'rgba(188,140,255,0.1)', pointBackgroundColor: '#BC8CFF' },
+                { label: 'GMKtec EVO-X2 AI', data: [92, 90, 90, 80, 85, 80, 25, 92, 85], borderColor: '#3FB950', backgroundColor: 'rgba(63,185,80,0.1)', pointBackgroundColor: '#3FB950' },
+                { label: 'Beelink GTR9 Pro', data: [92, 90, 90, 80, 85, 88, 30, 92, 70], borderColor: '#F0883E', backgroundColor: 'rgba(240,136,62,0.1)', pointBackgroundColor: '#F0883E' },
             ]
         },
         options: {
@@ -403,11 +404,11 @@ function createBenchmarkChart() {
         data: {
             labels: ['Multi-Thread\n(Cinebench R24)', 'GPU Compute\n(FP16 TFLOPS)', 'LLM Inference\n(Llama 70B t/s)', 'NPU\n(TOPS)', 'Memory BW\n(GB/s)'],
             datasets: [
-                { label: 'ASUS NUC PN70', data: [1150, 25, 9.5, 50, 256], backgroundColor: 'rgba(0,174,239,0.8)' },
+                { label: 'ASUS NUC PN70', data: [1150, 25, 9.5, 50, 273], backgroundColor: 'rgba(0,174,239,0.8)' },
                 { label: 'HP Z2 Mini G1a', data: [1150, 25, 9.2, 50, 256], backgroundColor: 'rgba(188,140,255,0.7)' },
-                { label: 'Lenovo Neo Ultra', data: [1150, 25, 9.3, 50, 256], backgroundColor: 'rgba(88,166,255,0.7)' },
-                { label: 'Dell OptiPlex', data: [850, 10, 3.5, 50, 89], backgroundColor: 'rgba(240,136,62,0.7)' },
-                { label: 'Minisforum UMI2', data: [1100, 25, 9.0, 50, 256], backgroundColor: 'rgba(63,185,80,0.7)' },
+                { label: 'GMKtec EVO-X2', data: [1100, 25, 9.0, 50, 256], backgroundColor: 'rgba(63,185,80,0.7)' },
+                { label: 'Beelink GTR9 Pro', data: [1100, 25, 9.0, 50, 256], backgroundColor: 'rgba(240,136,62,0.7)' },
+                { label: 'Dell Pro Micro (Zen4)', data: [450, 3, 0, 0, 76], backgroundColor: 'rgba(88,166,255,0.5)' },
             ]
         },
         options: {
@@ -458,12 +459,13 @@ function createPricePerfChart() {
         type: 'scatter',
         data: {
             datasets: [
-                { label: 'Lenovo Neo Ultra', data: [{ x: 1699, y: 90 }], backgroundColor: '#58A6FF', pointRadius: 10 },
-                { label: 'HP Z2 Mini G1a', data: [{ x: 1899, y: 92 }], backgroundColor: '#BC8CFF', pointRadius: 10 },
-                { label: 'Dell OptiPlex', data: [{ x: 1099, y: 55 }], backgroundColor: '#F0883E', pointRadius: 10 },
-                { label: 'Minisforum UMI2', data: [{ x: 1399, y: 88 }], backgroundColor: '#3FB950', pointRadius: 10 },
-                { label: 'Gigabyte BRIX Pro', data: [{ x: 1299, y: 72 }], backgroundColor: '#D29922', pointRadius: 10 },
-                { label: 'Acer Revo Box', data: [{ x: 849, y: 45 }], backgroundColor: '#F85149', pointRadius: 10 },
+                { label: 'HP Z2 Mini G1a', data: [{ x: 2200, y: 92 }], backgroundColor: '#BC8CFF', pointRadius: 10 },
+                { label: 'Beelink GTR9 Pro', data: [{ x: 1999, y: 88 }], backgroundColor: '#F0883E', pointRadius: 10 },
+                { label: 'GMKtec EVO-X2 AI', data: [{ x: 1499, y: 88 }], backgroundColor: '#3FB950', pointRadius: 10 },
+                { label: 'Minisforum MS-S1', data: [{ x: 1900, y: 88 }], backgroundColor: '#D29922', pointRadius: 10 },
+                { label: 'Dell Pro Micro (Zen4)', data: [{ x: 799, y: 30 }], backgroundColor: '#58A6FF', pointRadius: 10 },
+                { label: 'Lenovo Neo 55q', data: [{ x: 699, y: 40 }], backgroundColor: '#F85149', pointRadius: 10 },
+                { label: 'Acer Revo Box', data: [{ x: 800, y: 35 }], backgroundColor: '#aaa', pointRadius: 10 },
             ]
         },
         options: {
@@ -508,7 +510,7 @@ function createSentimentChart() {
     const ctx = document.getElementById('chart-sentiment');
     if (!ctx) return;
 
-    const products = ['asus', 'lenovo', 'hp', 'dell', 'minisforum', 'gigabyte'];
+    const products = ['asus', 'hp', 'beelink', 'gmktec', 'minisforum', 'dell', 'lenovo'];
     const posData = products.map(p => VOICE_DATA.filter(v => v.product === p && v.sentiment === 'positive').length);
     const neuData = products.map(p => VOICE_DATA.filter(v => v.product === p && v.sentiment === 'neutral').length);
     const negData = products.map(p => VOICE_DATA.filter(v => v.product === p && v.sentiment === 'negative').length);
@@ -516,7 +518,7 @@ function createSentimentChart() {
     charts.sentiment = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['ASUS', 'Lenovo', 'HP', 'Dell', 'Minisforum', 'Gigabyte'],
+            labels: ['ASUS', 'HP', 'Beelink', 'GMKtec', 'Minisforum', 'Dell', 'Lenovo'],
             datasets: [
                 { label: 'Positive', data: posData, backgroundColor: 'rgba(63,185,80,0.7)' },
                 { label: 'Neutral', data: neuData, backgroundColor: 'rgba(210,153,34,0.7)' },
