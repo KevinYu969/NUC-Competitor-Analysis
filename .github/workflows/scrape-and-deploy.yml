@@ -1,0 +1,47 @@
+name: Scrape Customer Voice & Deploy
+
+on:
+  schedule:
+    # Twice daily: 6:00 UTC and 18:00 UTC
+    - cron: '0 6 * * *'
+    - cron: '0 18 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  scrape-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run Brave Search scraper
+        env:
+          BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+        run: python scripts/brave_scraper.py
+
+      - name: Commit scraped data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dashboard/data/voice_data.json
+          git diff --staged --quiet || git commit -m "chore: update customer voice data $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
+
+      - name: Deploy to Cloudflare Pages
+        if: success()
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dashboard --project-name=asus-nuc-competitor-analysis

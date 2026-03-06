@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASUS NUC Competitor Analysis Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.1/dist/chartjs-chart-matrix.min.js"></script>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-overlay">
+        <div class="login-card">
+            <div class="login-logo">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00AEEF" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                <h1>ASUS NUC<br>Competitor Analysis</h1>
+                <p class="login-subtitle">Strategic Product Management Dashboard</p>
+            </div>
+            <form id="login-form" onsubmit="return handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Account</label>
+                    <input type="text" id="username" placeholder="Enter your account" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                <div id="login-error" class="login-error" style="display:none">Invalid credentials. Please try again.</div>
+                <button type="submit" class="btn-login">Sign In</button>
+            </form>
+            <p class="login-footer">Confidential &amp; Proprietary Information</p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="dashboard-container" style="display:none">
+        <!-- Top Navigation -->
+        <nav class="top-nav">
+            <div class="nav-left">
+                <h2 class="nav-title">ASUS NUC PN70 — Competitor Analysis</h2>
+            </div>
+            <div class="nav-right">
+                <span class="nav-update" id="last-update">Last updated: --</span>
+                <button class="btn-refresh" onclick="refreshData()">↻ Refresh</button>
+                <button class="btn-logout" onclick="handleLogout()">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Tab Navigation -->
+        <div class="tab-bar">
+            <button class="tab active" data-tab="overview" onclick="switchTab('overview')">Executive Overview</button>
+            <button class="tab" data-tab="specs" onclick="switchTab('specs')">Spec Comparison</button>
+            <button class="tab" data-tab="pricing" onclick="switchTab('pricing')">Price & Positioning</button>
+            <button class="tab" data-tab="voice" onclick="switchTab('voice')">Customer Voice</button>
+            <button class="tab" data-tab="halo" onclick="switchTab('halo')">Halo Platform</button>
+        </div>
+
+        <!-- Tab Content: Executive Overview -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-label">Competitors Tracked</div>
+                    <div class="kpi-value" id="kpi-competitors">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Customer Mentions (7d)</div>
+                    <div class="kpi-value" id="kpi-mentions">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Avg. Sentiment</div>
+                    <div class="kpi-value" id="kpi-sentiment">--</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Price Range (USD)</div>
+                    <div class="kpi-value" id="kpi-price">--</div>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="card">
+                    <h3 class="card-title">Market Positioning Map</h3>
+                    <canvas id="chart-positioning"></canvas>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Feature Radar — PN70 vs Top Competitors</h3>
+                    <canvas id="chart-radar"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Competitive Landscape Summary</h3>
+                <div id="summary-text" class="summary-text">
+                    <p>The ASUS NUC PN70 targets the emerging AMD Zen5 mini PC segment with Strix Halo-class APU featuring RDNA 3.5 integrated graphics (20 WGP). Key differentiators include <3L form factor, LPDDR5(x) up to 192GB, and dual PCIe Gen4 NVMe slots — positioning it for AI developer, SMB IT, and creative professional workloads.</p>
+                    <p>Primary competitors include Lenovo ThinkCentre Neo Ultra (Strix Halo), HP Z2 Mini G1a (Strix Halo), and emerging offerings from Minisforum and Gigabyte. The competitive field is rapidly evolving as AMD Zen5 mobile/desktop APUs reach the mini PC segment in 2025-2026.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Spec Comparison -->
+        <div id="tab-specs" class="tab-content">
+            <div class="card">
+                <h3 class="card-title">Detailed Specification Comparison</h3>
+                <div class="table-wrapper">
+                    <table id="spec-table" class="spec-table">
+                        <thead>
+                            <tr>
+                                <th>Specification</th>
+                                <th class="highlight-col">ASUS NUC PN70</th>
+                                <!-- Dynamic columns added by JS -->
+                            </tr>
+                        </thead>
+                        <tbody id="spec-table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="card">
+                    <h3 class="card-title">Performance Benchmark Estimates</h3>
+                    <canvas id="chart-benchmarks"></canvas>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Feature Availability Matrix</h3>
+                    <div id="feature-matrix" class="feature-matrix">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Pricing -->
+        <div id="tab-pricing" class="tab-content">
+            <div class="grid-2col">
+                <div class="card">
+                    <h3 class="card-title">Price Comparison (USD MSRP)</h3>
+                    <canvas id="chart-price"></canvas>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Price-Performance Ratio</h3>
+                    <canvas id="chart-price-perf"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3 class="card-title">Pricing & Availability Details</h3>
+                <table class="spec-table" id="price-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Base Config Price</th>
+                            <th>Mid Config Price</th>
+                            <th>Max Config Price</th>
+                            <th>Availability</th>
+                            <th>Channel</th>
+                        </tr>
+                    </thead>
+                    <tbody id="price-table-body">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Content: Customer Voice -->
+        <div id="tab-voice" class="tab-content">
+            <div class="voice-filters">
+                <label>Source:
+                    <select id="filter-source" onchange="filterVoice()">
+                        <option value="all">All Sources</option>
+                        <option value="reddit">Reddit</option>
+                        <option value="forum">Forums</option>
+                        <option value="news">News</option>
+                        <option value="social">Social Media</option>
+                    </select>
+                </label>
+                <label>Product:
+                    <select id="filter-product" onchange="filterVoice()">
+                        <option value="all">All Products</option>
+                        <option value="asus">ASUS NUC PN70</option>
+                        <option value="lenovo">Lenovo</option>
+                        <option value="hp">HP</option>
+                        <option value="dell">Dell</option>
+                        <option value="minisforum">Minisforum</option>
+                        <option value="gigabyte">Gigabyte</option>
+                    </select>
+                </label>
+                <label>Sentiment:
+                    <select id="filter-sentiment" onchange="filterVoice()">
+                        <option value="all">All</option>
+                        <option value="positive">Positive</option>
+                        <option value="neutral">Neutral</option>
+                        <option value="negative">Negative</option>
+                    </select>
+                </label>
+                <label>Time Range:
+                    <select id="filter-time" onchange="filterVoice()">
+                        <option value="7d">Last 7 Days</option>
+                        <option value="30d">Last 30 Days</option>
+                        <option value="90d">Last 90 Days</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="grid-2col">
+                <div class="card">
+                    <h3 class="card-title">Mention Volume by Source</h3>
+                    <canvas id="chart-mentions"></canvas>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Sentiment Distribution</h3>
+                    <canvas id="chart-sentiment"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Customer Feedback Feed</h3>
+                <div id="voice-feed" class="voice-feed">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Halo Platform -->
+        <div id="tab-halo" class="tab-content">
+            <div class="halo-intro">
+                <p>Tracking user feedback specific to AMD Strix Halo platform — covering local LLM performance, OEM hardware/software quality, and ROCm ecosystem experience.</p>
+            </div>
+
+            <div class="halo-sections">
+                <!-- Section 1: Local LLM Performance -->
+                <div class="card halo-card">
+                    <h3 class="card-title">🔧 Platform Performance — Local LLM</h3>
+                    <p class="card-subtitle">User feedback on running local LLMs (Llama, Mistral, etc.) on Strix Halo APUs</p>
+                    <div class="grid-2col">
+                        <div>
+                            <canvas id="chart-llm-perf"></canvas>
+                        </div>
+                        <div id="llm-feed" class="voice-feed mini-feed">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: OEM Hardware/Software Feedback -->
+                <div class="card halo-card">
+                    <h3 class="card-title">🏭 OEM Hardware & Software Feedback</h3>
+                    <p class="card-subtitle">User experience with HP Z2 Mini G1a, white-label systems, and other Halo-based products</p>
+                    <div class="grid-2col">
+                        <div>
+                            <canvas id="chart-oem-sentiment"></canvas>
+                        </div>
+                        <div id="oem-feed" class="voice-feed mini-feed">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: ROCm Usage Feedback -->
+                <div class="card halo-card">
+                    <h3 class="card-title">⚡ ROCm Usage Feedback</h3>
+                    <p class="card-subtitle">Developer experience with ROCm on RDNA 3.5 integrated graphics</p>
+                    <div class="grid-2col">
+                        <div>
+                            <canvas id="chart-rocm"></canvas>
+                        </div>
+                        <div id="rocm-feed" class="voice-feed mini-feed">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <span>CONFIDENTIAL & PROPRIETARY — ASUS NUC Business Unit</span>
+            <span>Data auto-refreshes twice daily via Brave Search API</span>
+        </footer>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
