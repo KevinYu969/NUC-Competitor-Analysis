@@ -58,6 +58,7 @@
             <button class="tab" data-tab="pricing" onclick="switchTab('pricing')">Price & Positioning</button>
             <button class="tab" data-tab="voice" onclick="switchTab('voice')">Customer Voice</button>
             <button class="tab" data-tab="halo" onclick="switchTab('halo')">Halo Platform</button>
+            <button class="tab" data-tab="brief" onclick="switchTab('brief')">Daily Brief</button>
         </div>
 
         <!-- Tab Content: Executive Overview -->
@@ -278,6 +279,37 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Daily Brief -->
+        <div id="tab-brief" class="tab-content">
+            <div class="brief-header">
+                <div class="brief-tag">NUC 競爭日報</div>
+                <h2 class="brief-headline" id="brief-headline"></h2>
+                <div class="brief-meta">
+                    <span class="brief-author">ASUS NUC SPM Team</span>
+                    <span class="brief-date" id="brief-date"></span>
+                </div>
+            </div>
+
+            <div class="brief-nav">
+                <button class="brief-nav-btn active" onclick="switchBriefDate(0)">最新</button>
+                <button class="brief-nav-btn" onclick="switchBriefDate(1)">前一日</button>
+                <button class="brief-nav-btn" onclick="switchBriefDate(2)">兩天前</button>
+            </div>
+
+            <div class="brief-intro" id="brief-intro">
+                <!-- e.g. 【NUC 競爭日報】今天精選 5 則競爭者動態。 -->
+            </div>
+
+            <div id="brief-content" class="brief-content">
+                <!-- Populated by JS: each article as ＊title blocks -->
+            </div>
+
+            <div class="brief-footer-note">
+                <p>資料來源：Brave Search API 自動爬取・每日 07:00 UTC+8 更新</p>
+                <p>CONFIDENTIAL — 僅供 ASUS NUC BU 內部使用</p>
             </div>
         </div>
 
