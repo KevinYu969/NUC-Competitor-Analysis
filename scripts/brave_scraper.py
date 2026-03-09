@@ -365,6 +365,41 @@ def main():
     print(f"  New unique entries added: {added}")
     print(f"  Total entries: {len(merged)}")
     print(f"  Output: {OUTPUT_FILE}")
+
+    # --- Alert Detection ---
+    try:
+        from alert_system import (
+            detect_alerts, load_existing_alerts, save_alerts,
+            send_slack_notification, save_daily_snapshot
+        )
+
+        print(f"\n--- Alert Detection ---")
+        existing_alerts = load_existing_alerts()
+        new_alerts = detect_alerts(all_new, existing_alerts)
+        if new_alerts:
+            all_alerts = new_alerts + existing_alerts
+            saved = save_alerts(all_alerts)
+            print(f"  New alerts: {len(new_alerts)}")
+            high_count = sum(1 for a in new_alerts if a["impact"] == "high")
+            print(f"  High-impact: {high_count}")
+
+            # Send Slack notification if configured
+            slack_url = os.environ.get("SLACK_WEBHOOK_URL", "")
+            if slack_url:
+                send_slack_notification(new_alerts, slack_url)
+        else:
+            print("  No new alerts detected")
+
+        # Save daily snapshot for historical tracking
+        print(f"\n--- Historical Snapshot ---")
+        snapshot = save_daily_snapshot(merged)
+        print(f"  Snapshot saved: {snapshot['date']} ({snapshot['total_entries']} entries)")
+
+    except ImportError:
+        print("\n[WARN] alert_system module not found, skipping alerts & history")
+    except Exception as e:
+        print(f"\n[WARN] Alert/history processing failed: {e}")
+
     print(f"{'=' * 60}")
 
 

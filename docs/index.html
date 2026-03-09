@@ -60,6 +60,11 @@
             <button class="tab" data-tab="halo" onclick="switchTab('halo')">Halo Platform</button>
             <button class="tab" data-tab="brief" onclick="switchTab('brief')">Daily Brief</button>
             <button class="tab" data-tab="trends" onclick="switchTab('trends')">Trends Analysis</button>
+            <button class="tab" data-tab="alerts" onclick="switchTab('alerts')">
+                Alerts<span id="alert-badge" class="alert-badge" style="display:none">0</span>
+            </button>
+            <button class="tab" data-tab="history" onclick="switchTab('history')">History</button>
+            <button class="tab" data-tab="report" onclick="switchTab('report')">Report</button>
         </div>
 
         <!-- Tab Content: Executive Overview -->
@@ -373,6 +378,123 @@
                     <!-- Populated by JS -->
                 </div>
                 <p class="trends-data-note" id="trends-data-timestamp"></p>
+            </div>
+        </div>
+
+        <!-- Tab Content: Alerts -->
+        <div id="tab-alerts" class="tab-content">
+            <div class="card">
+                <div class="alerts-header">
+                    <h3 class="card-title">競品動態即時警報</h3>
+                    <div class="alerts-controls">
+                        <select id="alert-filter-impact" onchange="filterAlerts()">
+                            <option value="all">所有等級</option>
+                            <option value="high">高影響度</option>
+                            <option value="medium">中影響度</option>
+                            <option value="low">低影響度</option>
+                        </select>
+                        <button class="btn-mark-read" onclick="markAllAlertsRead()">全部標為已讀</button>
+                    </div>
+                </div>
+                <p class="card-subtitle">自動偵測高影響度競爭事件。高影響度事件會透過 Slack 即時推播。</p>
+            </div>
+
+            <div class="alerts-stats" id="alerts-stats">
+                <!-- KPI cards for alerts -->
+            </div>
+
+            <div id="alerts-timeline" class="alerts-timeline">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- Tab Content: History -->
+        <div id="tab-history" class="tab-content">
+            <div class="card">
+                <h3 class="card-title">歷史趨勢追蹤</h3>
+                <p class="card-subtitle">追蹤競品聲量、情緒、定價隨時間的變化趨勢（資料自動每日快照）</p>
+                <div class="history-controls">
+                    <select id="history-range" onchange="updateHistoryCharts()">
+                        <option value="30">過去 30 天</option>
+                        <option value="90" selected>過去 90 天</option>
+                        <option value="180">過去 180 天</option>
+                        <option value="365">過去 1 年</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="card">
+                    <h3 class="card-title">每日聲量趨勢</h3>
+                    <canvas id="chart-history-volume"></canvas>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">情緒走勢</h3>
+                    <canvas id="chart-history-sentiment"></canvas>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="card">
+                    <h3 class="card-title">品牌聲量佔比趨勢</h3>
+                    <canvas id="chart-history-brands"></canvas>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">來源分佈趨勢</h3>
+                    <canvas id="chart-history-sources"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">事件標記時間軸</h3>
+                <div id="history-events" class="history-events">
+                    <!-- Populated by JS: key events overlaid on timeline -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Report Generator -->
+        <div id="tab-report" class="tab-content">
+            <div class="card">
+                <h3 class="card-title">競品分析報告自動生成</h3>
+                <p class="card-subtitle">一鍵生成可分享的 HTML 報告，包含關鍵圖表與競品比較摘要</p>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">報告設定</h3>
+                <div class="report-config">
+                    <div class="report-section">
+                        <label class="report-label">報告標題</label>
+                        <input type="text" id="report-title" value="ASUS NUC PN70 — 競品分析週報" class="report-input">
+                    </div>
+                    <div class="report-section">
+                        <label class="report-label">比較對象（選擇 2-4 個競品）</label>
+                        <div id="report-competitors" class="report-checkboxes">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                    <div class="report-section">
+                        <label class="report-label">包含章節</label>
+                        <div class="report-checkboxes">
+                            <label class="report-checkbox"><input type="checkbox" id="rpt-summary" checked> Executive Summary</label>
+                            <label class="report-checkbox"><input type="checkbox" id="rpt-specs" checked> 規格比較</label>
+                            <label class="report-checkbox"><input type="checkbox" id="rpt-pricing" checked> 定價分析</label>
+                            <label class="report-checkbox"><input type="checkbox" id="rpt-voice" checked> 本週輿情重點</label>
+                            <label class="report-checkbox"><input type="checkbox" id="rpt-alerts" checked> 重要警報</label>
+                        </div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn-generate-report" onclick="generateReport()">生成 HTML 報告</button>
+                        <button class="btn-generate-report secondary" onclick="generateReport('print')">列印 / 匯出 PDF</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="report-preview-card" style="display:none">
+                <h3 class="card-title">報告預覽</h3>
+                <div id="report-preview" class="report-preview">
+                    <!-- Populated by JS -->
+                </div>
             </div>
         </div>
 

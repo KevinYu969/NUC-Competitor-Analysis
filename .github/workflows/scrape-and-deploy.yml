@@ -25,17 +25,28 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run Brave Search scraper
+      - name: Run Brave Search scraper (with alerts & history)
         env:
           BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: python scripts/brave_scraper.py
+
+      - name: Run Google Trends scraper
+        run: |
+          pip install pytrends 2>/dev/null || true
+          python scripts/trends_scraper.py || echo "Trends scraper skipped (pytrends not available)"
+
+      - name: Sync docs/ with dashboard/
+        run: |
+          cp dashboard/data/*.json docs/data/ 2>/dev/null || true
+          cp -r dashboard/data/history docs/data/history 2>/dev/null || true
 
       - name: Commit scraped data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add dashboard/data/voice_data.json
-          git diff --staged --quiet || git commit -m "chore: update customer voice data $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git add dashboard/data/ docs/data/
+          git diff --staged --quiet || git commit -m "chore: update data $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
 
       - name: Deploy to Cloudflare Pages

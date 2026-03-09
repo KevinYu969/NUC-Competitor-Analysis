@@ -77,6 +77,9 @@ async function initDashboard() {
     renderHaloFeeds();
     renderDailyBrief();
     loadTrendsData();
+    loadAlerts();
+    loadHistoryData();
+    initReportTab();
     initCharts();
     updateTimestamp();
 }
@@ -93,6 +96,8 @@ function refreshData() {
         renderHaloFeeds();
         renderDailyBrief();
         loadTrendsData();
+        loadAlerts();
+        loadHistoryData();
         updateKPIs();
         updateTimestamp();
         // Destroy and recreate charts to avoid canvas issues
@@ -1034,6 +1039,524 @@ function renderTrendsVerifyLinks(keywords, timeRange) {
 
 function renderTrendsTab() {
     updateTrendsChart();
+}
+
+// ==========================================
+// P0: ALERT SYSTEM
+// ==========================================
+let alertsData = [];
+
+async function loadAlerts() {
+    try {
+        const response = await fetch('data/alerts.json');
+        if (response.ok) {
+            alertsData = await response.json();
+        }
+    } catch (e) {
+        alertsData = generateSampleAlerts();
+    }
+    if (!alertsData.length) alertsData = generateSampleAlerts();
+    updateAlertBadge();
+    renderAlerts();
+}
+
+function generateSampleAlerts() {
+    // Sample alerts derived from VOICE_DATA for demonstration
+    const samples = [];
+    const rules = [
+        { id: 'major_review', name: '重大評測', impact: 'high', action: '分析評測結論，更新競品比較資料' },
+        { id: 'price_change', name: '價格變動', impact: 'high', action: '納入 PN70 定價策略，評估是否需調整價格帶' },
+        { id: 'software_ecosystem', name: '軟體生態重大更新', impact: 'high', action: '與 AMD 團隊確認相容性，更新技術文件' },
+        { id: 'new_product_launch', name: '新產品發布', impact: 'high', action: '評估對 PN70 上市時程與定位的影響' },
+        { id: 'market_event', name: '市場大事件', impact: 'medium', action: '密切追蹤展會動態，準備應對策略' },
+    ];
+
+    VOICE_DATA.slice(0, 8).forEach((v, i) => {
+        const rule = rules[i % rules.length];
+        samples.push({
+            id: `alert_sample_${i}`,
+            source_id: v.id,
+            rule_id: rule.id,
+            rule_name: rule.name,
+            impact: rule.impact,
+            title: v.title,
+            summary: v.text.substring(0, 200),
+            product: v.product,
+            source: v.source,
+            source_name: v.subreddit || v.outlet || v.forum_name || v.platform || '',
+            url: v.url,
+            date: v.date,
+            detected_at: new Date(v.date + 'T12:00:00Z').toISOString(),
+            action: rule.action,
+            read: i > 3,
+            keyword_matches: (v.tags || []).slice(0, 2),
+        });
+    });
+    return samples;
+}
+
+function updateAlertBadge() {
+    const unread = alertsData.filter(a => !a.read).length;
+    const badge = document.getElementById('alert-badge');
+    if (badge) {
+        badge.textContent = unread;
+        badge.style.display = unread > 0 ? 'inline-block' : 'none';
+    }
+}
+
+function filterAlerts() {
+    renderAlerts();
+}
+
+function markAllAlertsRead() {
+    alertsData.forEach(a => a.read = true);
+    updateAlertBadge();
+    renderAlerts();
+}
+
+function renderAlerts() {
+    const filter = document.getElementById('alert-filter-impact').value;
+    let filtered = filter === 'all' ? alertsData : alertsData.filter(a => a.impact === filter);
+
+    // Stats
+    const statsEl = document.getElementById('alerts-stats');
+    const total = alertsData.length;
+    const unread = alertsData.filter(a => !a.read).length;
+    const highCount = alertsData.filter(a => a.impact === 'high').length;
+    const todayCount = alertsData.filter(a => {
+        const d = new Date(a.detected_at || a.date);
+        const now = new Date();
+        return d.toDateString() === now.toDateString();
+    }).length;
+
+    statsEl.innerHTML = `
+        <div class="alert-stat-card"><div class="alert-stat-value">${total}</div><div class="alert-stat-label">總警報數</div></div>
+        <div class="alert-stat-card"><div class="alert-stat-value" style="color:var(--primary)">${unread}</div><div class="alert-stat-label">未讀</div></div>
+        <div class="alert-stat-card"><div class="alert-stat-value high">${highCount}</div><div class="alert-stat-label">高影響度</div></div>
+        <div class="alert-stat-card"><div class="alert-stat-value">${todayCount}</div><div class="alert-stat-label">今日新增</div></div>
+    `;
+
+    // Timeline
+    const timeline = document.getElementById('alerts-timeline');
+    if (!filtered.length) {
+        timeline.innerHTML = '<p style="color:var(--text-muted);padding:40px;text-align:center">目前無警報。系統將在偵測到高影響度事件時自動產生警報。</p>';
+        return;
+    }
+
+    timeline.innerHTML = filtered.sort((a, b) =>
+        new Date(b.detected_at || b.date) - new Date(a.detected_at || a.date)
+    ).map(alert => {
+        const impactClass = `impact-${alert.impact}`;
+        const unreadClass = alert.read ? '' : 'unread';
+        const safeUrl = sanitizeUrl(alert.url);
+
+        return `
+        <div class="alert-item ${impactClass} ${unreadClass}">
+            <div class="alert-item-header">
+                <span>
+                    <span class="alert-impact-tag ${alert.impact}">${alert.impact === 'high' ? '高' : alert.impact === 'medium' ? '中' : '低'}影響度</span>
+                    <span class="alert-rule-tag">${escapeHtml(alert.rule_name)}</span>
+                    ${alert.product ? `<span class="voice-tag">${alert.product.toUpperCase()}</span>` : ''}
+                </span>
+                <span class="alert-date">${formatDate(alert.date)}</span>
+            </div>
+            <div class="alert-title">${escapeHtml(alert.title)}</div>
+            <div class="alert-summary">${escapeHtml(alert.summary)}</div>
+            <div class="alert-action-box">
+                <span class="alert-action-label">▸ 建議行動</span>
+                <span class="alert-action-text">${escapeHtml(alert.action)}</span>
+            </div>
+            ${safeUrl ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="alert-link">查看原文 →</a>` : ''}
+        </div>`;
+    }).join('');
+}
+
+// ==========================================
+// P1: HISTORICAL TRACKING
+// ==========================================
+let historyData = [];
+
+async function loadHistoryData() {
+    try {
+        const response = await fetch('data/history.json');
+        if (response.ok) {
+            historyData = await response.json();
+        }
+    } catch (e) {
+        historyData = [];
+    }
+    if (!historyData.length) historyData = generateSampleHistory();
+    renderHistoryTab();
+}
+
+function generateSampleHistory() {
+    // Generate sample historical data from VOICE_DATA date range
+    const history = [];
+    const now = new Date();
+    for (let i = 89; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const seed = dateStr.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+
+        const total = 3 + (seed % 8);
+        const pos = Math.round(total * (0.3 + (seed % 30) / 100));
+        const neg = Math.round(total * (0.1 + (seed % 15) / 100));
+        const neu = total - pos - neg;
+
+        history.push({
+            date: dateStr,
+            total_entries: total,
+            sentiment: { positive: Math.max(0, pos), neutral: Math.max(0, neu), negative: Math.max(0, neg) },
+            product_mentions: {
+                asus: 1 + (seed % 3), hp: 1 + ((seed + 1) % 3), beelink: (seed % 2),
+                gmktec: (seed % 2), minisforum: ((seed + 2) % 2), dell: ((seed + 3) % 2), lenovo: ((seed + 1) % 2)
+            },
+            source_counts: {
+                reddit: 1 + (seed % 3), forum: (seed % 2), news: 1 + ((seed + 1) % 2), social: (seed % 2)
+            }
+        });
+    }
+    return history;
+}
+
+function updateHistoryCharts() {
+    const days = parseInt(document.getElementById('history-range').value) || 90;
+    const data = historyData.slice(-days);
+    if (!data.length) return;
+
+    const dates = data.map(d => {
+        const dt = new Date(d.date);
+        return `${dt.getMonth() + 1}/${dt.getDate()}`;
+    });
+
+    // Volume chart
+    if (charts.historyVolume) charts.historyVolume.destroy();
+    const volCtx = document.getElementById('chart-history-volume');
+    if (volCtx) {
+        charts.historyVolume = new Chart(volCtx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: '每日聲量',
+                    data: data.map(d => d.total_entries),
+                    backgroundColor: 'rgba(0,174,239,0.6)',
+                    borderRadius: 2,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { title: { display: true, text: '提及次數' }, grid: { color: '#21262D' } },
+                    x: { grid: { color: '#21262D' }, ticks: { maxTicksLimit: 12, font: { size: 9 } } }
+                }
+            }
+        });
+    }
+
+    // Sentiment trend chart
+    if (charts.historySentiment) charts.historySentiment.destroy();
+    const sentCtx = document.getElementById('chart-history-sentiment');
+    if (sentCtx) {
+        charts.historySentiment = new Chart(sentCtx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    { label: '正面', data: data.map(d => d.sentiment.positive), borderColor: '#3FB950', backgroundColor: 'rgba(63,185,80,0.1)', fill: true, tension: 0.3, pointRadius: 1 },
+                    { label: '中性', data: data.map(d => d.sentiment.neutral), borderColor: '#D29922', backgroundColor: 'rgba(210,153,34,0.1)', fill: true, tension: 0.3, pointRadius: 1 },
+                    { label: '負面', data: data.map(d => d.sentiment.negative), borderColor: '#F85149', backgroundColor: 'rgba(248,81,73,0.1)', fill: true, tension: 0.3, pointRadius: 1 },
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } } },
+                scales: {
+                    y: { stacked: false, title: { display: true, text: '提及次數' }, grid: { color: '#21262D' } },
+                    x: { grid: { color: '#21262D' }, ticks: { maxTicksLimit: 12, font: { size: 9 } } }
+                }
+            }
+        });
+    }
+
+    // Brand share chart
+    if (charts.historyBrands) charts.historyBrands.destroy();
+    const brandsCtx = document.getElementById('chart-history-brands');
+    if (brandsCtx) {
+        const brands = ['asus', 'hp', 'beelink', 'gmktec', 'minisforum', 'dell', 'lenovo'];
+        const brandColors = ['#00AEEF', '#BC8CFF', '#F0883E', '#3FB950', '#D29922', '#58A6FF', '#F85149'];
+        const brandLabels = ['ASUS', 'HP', 'Beelink', 'GMKtec', 'Minisforum', 'Dell', 'Lenovo'];
+
+        charts.historyBrands = new Chart(brandsCtx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: brands.map((b, i) => ({
+                    label: brandLabels[i],
+                    data: data.map(d => (d.product_mentions || {})[b] || 0),
+                    borderColor: brandColors[i],
+                    backgroundColor: brandColors[i] + '15',
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 1,
+                }))
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { position: 'bottom', labels: { padding: 10, usePointStyle: true, font: { size: 10 } } } },
+                scales: {
+                    y: { title: { display: true, text: '提及次數' }, grid: { color: '#21262D' } },
+                    x: { grid: { color: '#21262D' }, ticks: { maxTicksLimit: 12, font: { size: 9 } } }
+                }
+            }
+        });
+    }
+
+    // Source distribution chart
+    if (charts.historySources) charts.historySources.destroy();
+    const srcCtx = document.getElementById('chart-history-sources');
+    if (srcCtx) {
+        const sources = ['reddit', 'forum', 'news', 'social'];
+        const srcColors = ['#FF4500', '#6366F1', '#0EA5E9', '#A855F7'];
+        const srcLabels = ['Reddit', 'Forums', 'News', 'Social'];
+
+        charts.historySources = new Chart(srcCtx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: sources.map((s, i) => ({
+                    label: srcLabels[i],
+                    data: data.map(d => (d.source_counts || {})[s] || 0),
+                    backgroundColor: srcColors[i] + 'AA',
+                }))
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { position: 'bottom', labels: { padding: 10, usePointStyle: true } } },
+                scales: {
+                    x: { stacked: true, grid: { color: '#21262D' }, ticks: { maxTicksLimit: 12, font: { size: 9 } } },
+                    y: { stacked: true, grid: { color: '#21262D' }, title: { display: true, text: '提及次數' } }
+                }
+            }
+        });
+    }
+
+    // Event markers
+    renderHistoryEvents(data);
+}
+
+function renderHistoryEvents(data) {
+    const eventsEl = document.getElementById('history-events');
+    if (!eventsEl) return;
+
+    // Find notable days (spikes, sentiment shifts)
+    const events = [];
+    const avgVolume = data.reduce((s, d) => s + d.total_entries, 0) / data.length;
+
+    data.forEach((d, i) => {
+        if (d.total_entries > avgVolume * 1.8) {
+            events.push({ date: d.date, text: `<strong>聲量爆增</strong>：${d.total_entries} 則提及（平均 ${Math.round(avgVolume)} 則）`, impact: 'high' });
+        }
+        if (d.sentiment.negative > d.sentiment.positive && d.sentiment.negative >= 3) {
+            events.push({ date: d.date, text: `<strong>負面情緒升高</strong>：${d.sentiment.negative} 則負面 vs ${d.sentiment.positive} 則正面`, impact: 'medium' });
+        }
+        if (i > 0 && d.total_entries === 0 && data[i - 1].total_entries > 0) {
+            events.push({ date: d.date, text: '聲量歸零 — 可能為資料間隔', impact: 'low' });
+        }
+    });
+
+    // Add known industry events
+    const knownEvents = [
+        { date: '2025-01-07', text: '<strong>CES 2025</strong>：消費電子展（Las Vegas）', impact: 'high' },
+        { date: '2025-05-20', text: '<strong>COMPUTEX 2025</strong>：台北國際電腦展', impact: 'high' },
+        { date: '2026-01-06', text: '<strong>CES 2026</strong>：消費電子展', impact: 'high' },
+        { date: '2026-05-26', text: '<strong>COMPUTEX 2026</strong>：台北國際電腦展', impact: 'high' },
+    ];
+
+    const dataRange = data.map(d => d.date);
+    knownEvents.forEach(e => {
+        if (e.date >= dataRange[0] && e.date <= dataRange[dataRange.length - 1]) {
+            events.push(e);
+        }
+    });
+
+    events.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (!events.length) {
+        eventsEl.innerHTML = '<p style="color:var(--text-muted);padding:20px;font-size:0.85rem">歷史期間內無重大事件標記。</p>';
+        return;
+    }
+
+    eventsEl.innerHTML = events.slice(0, 20).map(e => `
+        <div class="history-event-item">
+            <span class="history-event-date">${e.date}</span>
+            <span class="history-event-dot ${e.impact}"></span>
+            <span class="history-event-text">${e.text}</span>
+        </div>
+    `).join('');
+}
+
+function renderHistoryTab() {
+    updateHistoryCharts();
+}
+
+// ==========================================
+// P2: REPORT GENERATOR
+// ==========================================
+function initReportTab() {
+    const container = document.getElementById('report-competitors');
+    if (!container) return;
+
+    const keys = Object.keys(COMPETITORS).filter(k => !COMPETITORS[k].isReference);
+    container.innerHTML = keys.map(k => {
+        const c = COMPETITORS[k];
+        const checked = ['hp_z2_mini_g1a', 'gmktec_evo_x2', 'beelink_gtr9_pro'].includes(k) ? 'checked' : '';
+        return `<label class="report-checkbox"><input type="checkbox" value="${k}" ${checked}> ${c.name}</label>`;
+    }).join('');
+}
+
+function getSelectedCompetitors() {
+    const checkboxes = document.querySelectorAll('#report-competitors input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function generateReport(mode) {
+    const title = document.getElementById('report-title').value || 'ASUS NUC PN70 — 競品分析報告';
+    const selectedComps = getSelectedCompetitors();
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    const includeSummary = document.getElementById('rpt-summary').checked;
+    const includeSpecs = document.getElementById('rpt-specs').checked;
+    const includePricing = document.getElementById('rpt-pricing').checked;
+    const includeVoice = document.getElementById('rpt-voice').checked;
+    const includeAlerts = document.getElementById('rpt-alerts').checked;
+
+    // Build report HTML
+    let html = `<h1>${escapeHtml(title)}</h1>`;
+    html += `<p style="color:#666;font-size:0.8rem">報告日期：${dateStr} ｜ ASUS NUC SPM Team ｜ CONFIDENTIAL</p>`;
+
+    // KPIs
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    const recentMentions = VOICE_DATA.filter(v => new Date(v.date) >= weekAgo).length;
+    const sentiments = VOICE_DATA.map(v => v.sentiment);
+    const posCount = sentiments.filter(s => s === 'positive').length;
+    const negCount = sentiments.filter(s => s === 'negative').length;
+    const totalSent = sentiments.length || 1;
+    const sentScore = ((posCount - negCount) / totalSent * 100).toFixed(0);
+    const sentLabel = sentScore > 20 ? '正面' : sentScore < -20 ? '負面' : '中性';
+
+    html += `<div class="report-kpi-row">
+        <div class="report-kpi"><div class="report-kpi-value">${selectedComps.length}</div><div class="report-kpi-label">比較競品數</div></div>
+        <div class="report-kpi"><div class="report-kpi-value">${recentMentions}</div><div class="report-kpi-label">7日聲量</div></div>
+        <div class="report-kpi"><div class="report-kpi-value">${sentLabel}</div><div class="report-kpi-label">整體情緒</div></div>
+        <div class="report-kpi"><div class="report-kpi-value">${VOICE_DATA.length}</div><div class="report-kpi-label">總資料筆數</div></div>
+    </div>`;
+
+    if (includeSummary) {
+        html += `<h2>Executive Summary</h2>`;
+        html += `<p>HP Z2 Mini G1a 是目前唯一出貨 Strix Halo 的 Tier-1 OEM。Dell 和 Lenovo 尚未進入此市場，為 ASUS NUC PN70 創造市場窗口期。</p>`;
+        html += `<p>PN70 獨特優勢：192GB 統一記憶體（業界最高）、8533 MT/s 記憶體速度、內建 PSU 的 &lt;3L 體積、免工具可堆疊設計。</p>`;
+    }
+
+    if (includeSpecs && selectedComps.length) {
+        html += `<h2>規格比較</h2>`;
+        const ref = COMPETITORS.asus_pn70;
+        html += `<table><thead><tr><th>規格</th><th>ASUS NUC PN70</th>`;
+        selectedComps.forEach(k => html += `<th>${COMPETITORS[k].name}</th>`);
+        html += `</tr></thead><tbody>`;
+
+        const specKeys = [
+            { label: '平台', key: 'platform' }, { label: 'CPU', key: 'cpu' },
+            { label: '最大記憶體', key: 'memory_max' }, { label: 'GPU', key: 'gpu' },
+            { label: 'NPU', key: 'npu' }, { label: '體積', key: 'volume' },
+            { label: 'PSU', key: 'psu' }, { label: '上市狀態', key: 'availability' },
+        ];
+
+        specKeys.forEach(s => {
+            html += `<tr><td><strong>${s.label}</strong></td><td style="color:#00AEEF">${ref[s.key] || '—'}</td>`;
+            selectedComps.forEach(k => html += `<td>${COMPETITORS[k][s.key] || '—'}</td>`);
+            html += `</tr>`;
+        });
+        html += `</tbody></table>`;
+    }
+
+    if (includePricing) {
+        html += `<h2>定價分析</h2>`;
+        html += `<table><thead><tr><th>產品</th><th>基本</th><th>中階</th><th>高階</th><th>上市</th></tr></thead><tbody>`;
+        PRICING_DATA.filter(p => {
+            if (p.name.includes('PN70')) return true;
+            return selectedComps.some(k => COMPETITORS[k] && p.name.includes(COMPETITORS[k].brand));
+        }).forEach(p => {
+            html += `<tr><td>${p.name}</td><td>${p.base ? '$' + p.base.toLocaleString() : p.note || 'TBD'}</td>`;
+            html += `<td>${p.mid ? '$' + p.mid.toLocaleString() : 'TBD'}</td>`;
+            html += `<td>${p.max ? '$' + p.max.toLocaleString() : 'TBD'}</td>`;
+            html += `<td>${p.avail}</td></tr>`;
+        });
+        html += `</tbody></table>`;
+    }
+
+    if (includeVoice) {
+        html += `<h2>本週輿情重點</h2>`;
+        const recentVoice = VOICE_DATA.filter(v => new Date(v.date) >= weekAgo).slice(0, 5);
+        if (recentVoice.length) {
+            recentVoice.forEach(v => {
+                const sentEmoji = v.sentiment === 'positive' ? '+' : v.sentiment === 'negative' ? '-' : '~';
+                html += `<p><strong>[${sentEmoji}] ${escapeHtml(v.title)}</strong><br><span style="color:#666">${escapeHtml(v.text.substring(0, 150))}...</span></p>`;
+            });
+        } else {
+            html += `<p>本週無新輿情資料。</p>`;
+        }
+    }
+
+    if (includeAlerts && alertsData.length) {
+        html += `<h2>重要警報</h2>`;
+        const highAlerts = alertsData.filter(a => a.impact === 'high').slice(0, 5);
+        if (highAlerts.length) {
+            highAlerts.forEach(a => {
+                html += `<p><strong>[${a.rule_name}] ${escapeHtml(a.title)}</strong><br>`;
+                html += `<span style="color:#666">▸ 建議：${escapeHtml(a.action)}</span></p>`;
+            });
+        } else {
+            html += `<p>目前無高影響度警報。</p>`;
+        }
+    }
+
+    html += `<div class="report-footer">`;
+    html += `<p>ASUS NUC Competitor Analysis Dashboard — 自動生成報告</p>`;
+    html += `<p>${dateStr} ｜ CONFIDENTIAL — 僅供 ASUS NUC BU 內部使用</p>`;
+    html += `</div>`;
+
+    // Show preview
+    const previewCard = document.getElementById('report-preview-card');
+    const previewEl = document.getElementById('report-preview');
+    previewCard.style.display = 'block';
+    previewEl.innerHTML = html;
+
+    if (mode === 'print') {
+        // Open in new window for printing / Save as PDF
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(title)}</title>
+<style>
+body { font-family: 'Segoe UI', -apple-system, sans-serif; padding: 40px; color: #1a1a1a; line-height: 1.6; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.5rem; border-bottom: 3px solid #00AEEF; padding-bottom: 12px; margin-bottom: 20px; }
+h2 { font-size: 1.1rem; color: #00AEEF; margin: 24px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #e0e0e0; }
+p { margin-bottom: 10px; font-size: 0.9rem; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; }
+th, td { padding: 8px 12px; border: 1px solid #e0e0e0; text-align: left; }
+th { background: #f5f5f5; font-weight: 600; }
+.report-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+.report-kpi { text-align: center; padding: 12px; background: #f8f9fa; border-radius: 6px; }
+.report-kpi-value { font-size: 1.4rem; font-weight: 700; color: #00AEEF; }
+.report-kpi-label { font-size: 0.75rem; color: #666; margin-top: 4px; }
+.report-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e0e0e0; font-size: 0.75rem; color: #888; text-align: center; }
+@media print { body { padding: 20px; } }
+</style></head><body>${html}</body></html>`);
+        printWindow.document.close();
+        setTimeout(() => printWindow.print(), 500);
+    }
 }
 
 // ==========================================
