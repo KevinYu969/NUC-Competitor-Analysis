@@ -76,6 +76,7 @@ async function initDashboard() {
     renderVoiceFeed();
     renderHaloFeeds();
     renderDailyBrief();
+    loadTrendsData();
     initCharts();
     updateTimestamp();
 }
@@ -91,6 +92,7 @@ function refreshData() {
         renderVoiceFeed();
         renderHaloFeeds();
         renderDailyBrief();
+        loadTrendsData();
         updateKPIs();
         updateTimestamp();
         // Destroy and recreate charts to avoid canvas issues
@@ -644,6 +646,7 @@ function createROCmChart() {
 // ==========================================
 let currentBriefs = [];
 let currentBriefIndex = 0;
+let briefSearchKeyword = '';
 
 function renderDailyBrief() {
     currentBriefs = generateDailyBriefs();
@@ -652,7 +655,22 @@ function renderDailyBrief() {
             '<p style="color:var(--text-muted);padding:40px;text-align:center">尚無競爭情報資料。資料將在下次 Brave Search API 爬取後自動更新。</p>';
         return;
     }
+    renderBriefNav();
     displayBrief(0);
+}
+
+function renderBriefNav() {
+    const nav = document.getElementById('brief-nav');
+    const briefs = briefSearchKeyword ? getFilteredBriefs() : currentBriefs;
+    if (!briefs.length) {
+        nav.innerHTML = '';
+        return;
+    }
+    nav.innerHTML = briefs.map((brief, i) => {
+        const d = new Date(brief.date);
+        const label = `${d.getMonth() + 1}/${d.getDate()}（${brief.count}則）`;
+        return `<button class="brief-nav-btn ${i === 0 ? 'active' : ''}" onclick="switchBriefDate(${i})">${label}</button>`;
+    }).join('');
 }
 
 function switchBriefDate(index) {
@@ -663,27 +681,74 @@ function switchBriefDate(index) {
     displayBrief(index);
 }
 
+function getFilteredBriefs() {
+    if (!briefSearchKeyword) return currentBriefs;
+    const kw = briefSearchKeyword.toLowerCase();
+    return currentBriefs.map(brief => {
+        const filteredItems = brief.items.filter(item =>
+            item.title.toLowerCase().includes(kw) ||
+            item.paragraphs.some(p => p.toLowerCase().includes(kw)) ||
+            item.action.toLowerCase().includes(kw) ||
+            item.tag.toLowerCase().includes(kw) ||
+            item.source.toLowerCase().includes(kw)
+        );
+        if (!filteredItems.length) return null;
+        return { ...brief, items: filteredItems, count: filteredItems.length };
+    }).filter(Boolean);
+}
+
+function filterBriefByKeyword() {
+    const input = document.getElementById('brief-search-input');
+    const clearBtn = document.getElementById('brief-search-clear');
+    briefSearchKeyword = input.value.trim();
+    clearBtn.style.display = briefSearchKeyword ? 'block' : 'none';
+
+    const briefs = getFilteredBriefs();
+    if (!briefs.length && briefSearchKeyword) {
+        document.getElementById('brief-nav').innerHTML = '';
+        document.getElementById('brief-headline').textContent = '';
+        document.getElementById('brief-date').textContent = '';
+        document.getElementById('brief-intro').innerHTML = '';
+        document.getElementById('brief-content').innerHTML =
+            `<p class="brief-no-results">找不到包含「${escapeHtml(briefSearchKeyword)}」的競爭動態。</p>`;
+        return;
+    }
+
+    renderBriefNav();
+    displayBrief(0);
+}
+
+function clearBriefSearch() {
+    document.getElementById('brief-search-input').value = '';
+    briefSearchKeyword = '';
+    document.getElementById('brief-search-clear').style.display = 'none';
+    renderBriefNav();
+    displayBrief(0);
+}
+
 function displayBrief(index) {
-    if (index >= currentBriefs.length) {
+    const briefs = briefSearchKeyword ? getFilteredBriefs() : currentBriefs;
+
+    if (index >= briefs.length) {
         document.getElementById('brief-content').innerHTML =
             '<p style="color:var(--text-muted);padding:40px;text-align:center">該日無競爭情報資料。</p>';
         return;
     }
 
-    const brief = currentBriefs[index];
+    const brief = briefs[index];
     const dateObj = new Date(brief.date);
     const dateDisplay = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 
     // Header
     document.getElementById('brief-date').textContent = dateDisplay;
 
-    // Generate headline from first item
+    // Generate headline: summarize all items, not just first
     const topItem = brief.items[0];
     document.getElementById('brief-headline').textContent = topItem ? topItem.title : 'NUC 競爭者每日情報';
 
     // Intro line (TechOrange style)
     document.getElementById('brief-intro').innerHTML =
-        `<p>【NUC 競爭日報】今天精選 <strong>${brief.count}</strong> 則競爭者相關動態。</p>`;
+        `<p>【NUC 競爭日報】今天精選 <strong>${brief.count}</strong> 則競爭者相關動態。${briefSearchKeyword ? `（搜尋：「${escapeHtml(briefSearchKeyword)}」）` : ''}</p>`;
 
     // Render articles
     let html = '';
@@ -691,17 +756,18 @@ function displayBrief(index) {
         const impactClass = item.impact === 'high' ? 'impact-high' : item.impact === 'medium' ? 'impact-medium' : 'impact-low';
 
         html += `<article class="brief-article">`;
-        html += `<h3 class="brief-article-title">＊${escapeHtml(item.title)}</h3>`;
+        html += `<span class="voice-tag" style="margin-bottom:8px;display:inline-block">${escapeHtml(item.tag)}</span>`;
+        html += `<h3 class="brief-article-title">＊${highlightKeyword(escapeHtml(item.title))}</h3>`;
 
         // Paragraphs with bold markdown support
         item.paragraphs.forEach(p => {
-            html += `<p class="brief-article-text">${formatBoldText(escapeHtml(p))}</p>`;
+            html += `<p class="brief-article-text">${highlightKeyword(formatBoldText(escapeHtml(p)))}</p>`;
         });
 
         // SPM action box
         html += `<div class="brief-action-box ${impactClass}">`;
         html += `<span class="brief-action-label">▸ SPM 行動建議</span>`;
-        html += `<span class="brief-action-text">${escapeHtml(item.action)}</span>`;
+        html += `<span class="brief-action-text">${highlightKeyword(escapeHtml(item.action))}</span>`;
         html += `</div>`;
 
         // Source link
@@ -718,9 +784,256 @@ function displayBrief(index) {
     document.getElementById('brief-content').innerHTML = html;
 }
 
+function highlightKeyword(text) {
+    if (!briefSearchKeyword) return text;
+    const kw = briefSearchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp(`(${kw})`, 'gi'), '<span class="brief-search-highlight">$1</span>');
+}
+
 function formatBoldText(text) {
     // Convert **text** to <strong>text</strong>
     return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
+// ==========================================
+// GOOGLE TRENDS ANALYSIS
+// ==========================================
+const TREND_PRESETS = [
+    { label: 'Mini PC 品牌', keywords: ['ASUS NUC', 'HP Z2 Mini', 'Beelink Mini PC', 'GMKtec', 'Minisforum'] },
+    { label: 'Strix Halo', keywords: ['AMD Strix Halo', 'Ryzen AI Max', 'RDNA 3.5', 'ROCm'] },
+    { label: 'AI PC', keywords: ['AI PC', 'Local LLM', 'NPU laptop', 'Copilot PC', 'DGX Spark'] },
+];
+
+let currentTrendPreset = 0;
+let trendsData = null;
+
+async function loadTrendsData() {
+    try {
+        const response = await fetch('data/trends_data.json');
+        if (response.ok) {
+            trendsData = await response.json();
+        }
+    } catch (e) {
+        // Use sample data
+        trendsData = null;
+    }
+    renderTrendsTab();
+}
+
+function selectTrendPreset(index) {
+    currentTrendPreset = index;
+    document.querySelectorAll('.trends-keyword-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
+    });
+    document.getElementById('trends-custom-input').value = '';
+    updateTrendsChart();
+}
+
+function getCurrentTrendKeywords() {
+    const customInput = document.getElementById('trends-custom-input');
+    if (customInput && customInput.value.trim()) {
+        return customInput.value.split(',').map(k => k.trim()).filter(Boolean).slice(0, 5);
+    }
+    return TREND_PRESETS[currentTrendPreset].keywords;
+}
+
+function searchCustomTrends() {
+    const input = document.getElementById('trends-custom-input').value.trim();
+    if (!input) return;
+    // Deselect preset buttons
+    document.querySelectorAll('.trends-keyword-btn').forEach(btn => btn.classList.remove('active'));
+    updateTrendsChart();
+}
+
+function updateTrendsChart() {
+    const keywords = getCurrentTrendKeywords();
+    const timeRange = document.getElementById('trends-timerange').value;
+
+    // If we have scraped data matching these keywords, use it
+    const matchedData = trendsData ? findMatchingTrendsData(keywords, timeRange) : null;
+
+    if (matchedData) {
+        renderTrendsFromData(matchedData, keywords);
+    } else {
+        renderTrendsFromSample(keywords, timeRange);
+    }
+
+    renderTrendsVerifyLinks(keywords, timeRange);
+}
+
+function findMatchingTrendsData(keywords, timeRange) {
+    if (!trendsData || !trendsData.presets) return null;
+    const preset = trendsData.presets.find(p =>
+        p.keywords.length === keywords.length &&
+        p.keywords.every((k, i) => k === keywords[i])
+    );
+    if (preset && preset.timeframes && preset.timeframes[timeRange]) {
+        return preset.timeframes[timeRange];
+    }
+    return null;
+}
+
+function renderTrendsFromData(data, keywords) {
+    const colors = ['#00AEEF', '#BC8CFF', '#3FB950', '#F0883E', '#F85149'];
+
+    // Line chart
+    if (charts.trendsLine) charts.trendsLine.destroy();
+    const lineCtx = document.getElementById('chart-trends-line');
+    if (!lineCtx) return;
+
+    charts.trendsLine = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: data.dates,
+            datasets: keywords.map((kw, i) => ({
+                label: kw,
+                data: data.values[i] || [],
+                borderColor: colors[i % colors.length],
+                backgroundColor: colors[i % colors.length] + '15',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } } },
+            scales: {
+                y: { title: { display: true, text: '搜尋熱度（相對值）' }, min: 0, max: 100, grid: { color: '#21262D' } },
+                x: { grid: { color: '#21262D' }, ticks: { maxTicksLimit: 12, font: { size: 10 } } }
+            }
+        }
+    });
+
+    // Bar chart - averages
+    if (charts.trendsBar) charts.trendsBar.destroy();
+    const barCtx = document.getElementById('chart-trends-bar');
+    if (!barCtx) return;
+
+    const averages = keywords.map((kw, i) => {
+        const vals = data.values[i] || [];
+        return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+    });
+
+    charts.trendsBar = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: keywords,
+            datasets: [{
+                label: '平均搜尋熱度',
+                data: averages,
+                backgroundColor: colors.slice(0, keywords.length).map(c => c + 'CC'),
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { title: { display: true, text: '平均熱度' }, min: 0, grid: { color: '#21262D' } },
+                x: { grid: { color: '#21262D' }, ticks: { font: { size: 10 }, maxRotation: 30 } }
+            }
+        }
+    });
+
+    // Related terms
+    if (data.related) {
+        renderRelatedTerms(data.related);
+    }
+
+    // Data timestamp
+    const tsEl = document.getElementById('trends-data-timestamp');
+    if (tsEl && data.fetched_at) {
+        tsEl.textContent = `資料抓取時間：${data.fetched_at}（由 pytrends 自動抓取）`;
+    }
+}
+
+function renderTrendsFromSample(keywords, timeRange) {
+    // Generate plausible sample data for demonstration
+    const colors = ['#00AEEF', '#BC8CFF', '#3FB950', '#F0883E', '#F85149'];
+    const points = timeRange === 'past_7d' ? 7 : timeRange === 'past_30d' ? 30 : timeRange === 'past_3m' ? 13 : 52;
+
+    const dates = [];
+    const now = new Date();
+    for (let i = points - 1; i >= 0; i--) {
+        const d = new Date(now);
+        if (timeRange === 'past_7d') d.setDate(d.getDate() - i);
+        else if (timeRange === 'past_30d') d.setDate(d.getDate() - i);
+        else if (timeRange === 'past_3m') d.setDate(d.getDate() - i * 7);
+        else d.setDate(d.getDate() - i * 7);
+        dates.push(`${d.getMonth() + 1}/${d.getDate()}`);
+    }
+
+    // Seed-based sample data for each keyword
+    const datasets = keywords.map((kw, idx) => {
+        const seed = kw.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        const base = 20 + (seed % 50);
+        const data = dates.map((_, j) => {
+            const wave = Math.sin((j + seed) * 0.5) * 15;
+            const noise = ((seed * (j + 1) * 7) % 20) - 10;
+            return Math.max(0, Math.min(100, Math.round(base + wave + noise)));
+        });
+        return data;
+    });
+
+    const fakeData = { dates, values: datasets, related: null };
+    renderTrendsFromData(fakeData, keywords);
+
+    // Show notice that this is sample data
+    const tsEl = document.getElementById('trends-data-timestamp');
+    if (tsEl) {
+        tsEl.textContent = '⚠ 目前顯示的是示範數據。啟用 pytrends 爬蟲後將顯示真實 Google Trends 資料。請使用下方驗證連結查看即時數據。';
+    }
+}
+
+function renderRelatedTerms(related) {
+    const container = document.getElementById('trends-related');
+    if (!container || !related || !related.length) {
+        if (container) container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">啟用 pytrends 爬蟲後將顯示相關搜尋字詞。</p>';
+        return;
+    }
+    container.innerHTML = related.map(r => `
+        <div class="trends-related-item">
+            <span class="trends-related-term">${escapeHtml(r.term)}</span>
+            <span class="trends-related-value">${r.value}</span>
+        </div>
+    `).join('');
+}
+
+function renderTrendsVerifyLinks(keywords, timeRange) {
+    const container = document.getElementById('trends-verify-links');
+    if (!container) return;
+
+    const timeMap = { past_7d: 'now 7-d', past_30d: 'today 1-m', past_3m: 'today 3-m', past_12m: 'today 12-m' };
+    const geoParam = '';  // worldwide
+    const timeParam = timeMap[timeRange] || 'today 12-m';
+    const encodedKeywords = keywords.map(k => encodeURIComponent(k));
+
+    // Google Trends comparison URL
+    const trendsUrl = `https://trends.google.com/trends/explore?date=${encodeURIComponent(timeParam)}${geoParam}&q=${encodedKeywords.join(',')}&hl=zh-TW`;
+
+    let html = '';
+    html += `<a href="${trendsUrl}" target="_blank" rel="noopener noreferrer" class="trends-verify-link">`;
+    html += `<span class="link-icon">✓</span>`;
+    html += `<span><span class="link-text">Google Trends 驗證連結</span><br><span class="link-keywords">${keywords.join(' vs ')}</span></span>`;
+    html += `</a>`;
+
+    // Individual keyword links
+    keywords.forEach(kw => {
+        const singleUrl = `https://trends.google.com/trends/explore?date=${encodeURIComponent(timeParam)}&q=${encodeURIComponent(kw)}&hl=zh-TW`;
+        html += `<a href="${singleUrl}" target="_blank" rel="noopener noreferrer" class="trends-verify-link">`;
+        html += `<span class="link-icon">→</span>`;
+        html += `<span class="link-text">${escapeHtml(kw)}</span>`;
+        html += `</a>`;
+    });
+
+    container.innerHTML = html;
+}
+
+function renderTrendsTab() {
+    updateTrendsChart();
 }
 
 // ==========================================

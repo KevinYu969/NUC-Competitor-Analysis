@@ -59,6 +59,7 @@
             <button class="tab" data-tab="voice" onclick="switchTab('voice')">Customer Voice</button>
             <button class="tab" data-tab="halo" onclick="switchTab('halo')">Halo Platform</button>
             <button class="tab" data-tab="brief" onclick="switchTab('brief')">Daily Brief</button>
+            <button class="tab" data-tab="trends" onclick="switchTab('trends')">Trends Analysis</button>
         </div>
 
         <!-- Tab Content: Executive Overview -->
@@ -293,10 +294,15 @@
                 </div>
             </div>
 
-            <div class="brief-nav">
-                <button class="brief-nav-btn active" onclick="switchBriefDate(0)">最新</button>
-                <button class="brief-nav-btn" onclick="switchBriefDate(1)">前一日</button>
-                <button class="brief-nav-btn" onclick="switchBriefDate(2)">兩天前</button>
+            <!-- Search bar -->
+            <div class="brief-search-bar">
+                <input type="text" id="brief-search-input" placeholder="搜尋關鍵字（例：ROCm、HP、定價）" oninput="filterBriefByKeyword()">
+                <button class="brief-search-clear" id="brief-search-clear" onclick="clearBriefSearch()" style="display:none">✕</button>
+            </div>
+
+            <!-- Dynamic date navigation -->
+            <div class="brief-nav" id="brief-nav">
+                <!-- Dynamically populated date buttons -->
             </div>
 
             <div class="brief-intro" id="brief-intro">
@@ -310,6 +316,63 @@
             <div class="brief-footer-note">
                 <p>資料來源：Brave Search API 自動爬取・每日 07:00 UTC+8 更新</p>
                 <p>CONFIDENTIAL — 僅供 ASUS NUC BU 內部使用</p>
+            </div>
+        </div>
+
+        <!-- Tab Content: Trends Analysis -->
+        <div id="tab-trends" class="tab-content">
+            <div class="card">
+                <h3 class="card-title">Google Trends 聲量分析</h3>
+                <p class="card-subtitle">追蹤 NUC 相關關鍵字在 Google 搜尋的熱度變化（資料來源：Google Trends，可點擊驗證連結確認）</p>
+
+                <div class="trends-controls">
+                    <div class="trends-preset-keywords">
+                        <span class="trends-label">預設關鍵字：</span>
+                        <button class="trends-keyword-btn active" onclick="selectTrendPreset(0)">Mini PC 品牌</button>
+                        <button class="trends-keyword-btn" onclick="selectTrendPreset(1)">Strix Halo</button>
+                        <button class="trends-keyword-btn" onclick="selectTrendPreset(2)">AI PC</button>
+                    </div>
+                    <div class="trends-custom-search">
+                        <input type="text" id="trends-custom-input" placeholder="自訂關鍵字（逗號分隔，最多 5 個）" />
+                        <button class="btn-trends-search" onclick="searchCustomTrends()">查詢 Google Trends</button>
+                    </div>
+                    <div class="trends-time-range">
+                        <span class="trends-label">時間範圍：</span>
+                        <select id="trends-timerange" onchange="updateTrendsChart()">
+                            <option value="past_12m">過去 12 個月</option>
+                            <option value="past_3m">過去 3 個月</option>
+                            <option value="past_30d">過去 30 天</option>
+                            <option value="past_7d">過去 7 天</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="card">
+                    <h3 class="card-title">搜尋熱度趨勢</h3>
+                    <canvas id="chart-trends-line"></canvas>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">平均搜尋熱度比較</h3>
+                    <canvas id="chart-trends-bar"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">相關搜尋字詞</h3>
+                <div id="trends-related" class="trends-related-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="card trends-verify-card">
+                <h3 class="card-title">資料驗證</h3>
+                <p class="trends-verify-note">以下連結可直接開啟 Google Trends 驗證上述數據的正確性：</p>
+                <div id="trends-verify-links" class="trends-verify-links">
+                    <!-- Populated by JS -->
+                </div>
+                <p class="trends-data-note" id="trends-data-timestamp"></p>
             </div>
         </div>
 
