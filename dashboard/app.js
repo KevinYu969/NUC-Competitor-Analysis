@@ -75,6 +75,7 @@ async function initDashboard() {
     renderPriceTable();
     renderVoiceFeed();
     renderHaloFeeds();
+    renderDailyBrief();
     initCharts();
     updateTimestamp();
 }
@@ -89,6 +90,7 @@ function refreshData() {
     loadVoiceData().then(() => {
         renderVoiceFeed();
         renderHaloFeeds();
+        renderDailyBrief();
         updateKPIs();
         updateTimestamp();
         // Destroy and recreate charts to avoid canvas issues
@@ -635,6 +637,90 @@ function createROCmChart() {
             }
         }
     });
+}
+
+// ==========================================
+// DAILY BRIEF (NEWSLETTER)
+// ==========================================
+let currentBriefs = [];
+let currentBriefIndex = 0;
+
+function renderDailyBrief() {
+    currentBriefs = generateDailyBriefs();
+    if (!currentBriefs.length) {
+        document.getElementById('brief-content').innerHTML =
+            '<p style="color:var(--text-muted);padding:40px;text-align:center">尚無競爭情報資料。資料將在下次 Brave Search API 爬取後自動更新。</p>';
+        return;
+    }
+    displayBrief(0);
+}
+
+function switchBriefDate(index) {
+    currentBriefIndex = index;
+    document.querySelectorAll('.brief-nav-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
+    });
+    displayBrief(index);
+}
+
+function displayBrief(index) {
+    if (index >= currentBriefs.length) {
+        document.getElementById('brief-content').innerHTML =
+            '<p style="color:var(--text-muted);padding:40px;text-align:center">該日無競爭情報資料。</p>';
+        return;
+    }
+
+    const brief = currentBriefs[index];
+    const dateObj = new Date(brief.date);
+    const dateDisplay = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+
+    // Header
+    document.getElementById('brief-date').textContent = dateDisplay;
+
+    // Generate headline from first item
+    const topItem = brief.items[0];
+    document.getElementById('brief-headline').textContent = topItem ? topItem.title : 'NUC 競爭者每日情報';
+
+    // Intro line (TechOrange style)
+    document.getElementById('brief-intro').innerHTML =
+        `<p>【NUC 競爭日報】今天精選 <strong>${brief.count}</strong> 則競爭者相關動態。</p>`;
+
+    // Render articles
+    let html = '';
+    brief.items.forEach(item => {
+        const impactClass = item.impact === 'high' ? 'impact-high' : item.impact === 'medium' ? 'impact-medium' : 'impact-low';
+
+        html += `<article class="brief-article">`;
+        html += `<h3 class="brief-article-title">＊${escapeHtml(item.title)}</h3>`;
+
+        // Paragraphs with bold markdown support
+        item.paragraphs.forEach(p => {
+            html += `<p class="brief-article-text">${formatBoldText(escapeHtml(p))}</p>`;
+        });
+
+        // SPM action box
+        html += `<div class="brief-action-box ${impactClass}">`;
+        html += `<span class="brief-action-label">▸ SPM 行動建議</span>`;
+        html += `<span class="brief-action-text">${escapeHtml(item.action)}</span>`;
+        html += `</div>`;
+
+        // Source link
+        if (item.url) {
+            const safeUrl = sanitizeUrl(item.url);
+            if (safeUrl) {
+                html += `<p class="brief-source">── ${escapeHtml(item.source)}（<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">原文連結</a>）</p>`;
+            }
+        }
+
+        html += `</article>`;
+    });
+
+    document.getElementById('brief-content').innerHTML = html;
+}
+
+function formatBoldText(text) {
+    // Convert **text** to <strong>text</strong>
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 }
 
 // ==========================================

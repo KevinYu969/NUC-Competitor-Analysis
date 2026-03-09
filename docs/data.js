@@ -580,6 +580,112 @@ function getHaloROCmData() {
 }
 
 // ==========================================
+// DAILY BRIEF / NEWSLETTER DATA
+// Auto-generated from VOICE_DATA competitor intelligence
+// Style reference: TechOrange 科技早餐
+// ==========================================
+
+// Generate daily briefs from VOICE_DATA after it loads
+function generateDailyBriefs() {
+    // Group voice data by date
+    const byDate = {};
+    VOICE_DATA.forEach(v => {
+        if (!byDate[v.date]) byDate[v.date] = [];
+        byDate[v.date].push(v);
+    });
+
+    // Sort dates descending
+    const sortedDates = Object.keys(byDate).sort((a, b) => new Date(b) - new Date(a));
+
+    // Generate briefs for each date
+    return sortedDates.map(date => {
+        const items = byDate[date];
+        const briefItems = items.map(v => {
+            // Map voice data to newsletter article format
+            const brandMap = {
+                asus: 'ASUS NUC PN70', hp: 'HP Z2 Mini G1a', beelink: 'Beelink GTR9 Pro',
+                gmktec: 'GMKtec EVO-X2 AI', minisforum: 'Minisforum MS-S1', dell: 'Dell Pro Micro',
+                lenovo: 'Lenovo Neo 55q', acer: 'Acer Revo Box'
+            };
+            const productName = brandMap[v.product] || v.product;
+
+            // Determine tag from source/category
+            let tag = '競品動態';
+            if (v.halo_category === 'llm_performance') tag = 'AI 效能';
+            else if (v.halo_category === 'rocm_feedback') tag = '軟體生態';
+            else if (v.halo_category === 'oem_feedback') tag = 'OEM 評測';
+            else if (v.tags && v.tags.includes('pricing')) tag = '定價情報';
+            else if (v.tags && v.tags.includes('review')) tag = '產品評測';
+            else if (v.tags && v.tags.includes('comparison')) tag = '競品比較';
+
+            // Determine impact
+            let impact = 'medium';
+            if (v.sentiment === 'negative' && (v.product === 'asus' || v.halo_category === 'rocm_feedback')) impact = 'high';
+            else if (v.tags && (v.tags.includes('review') || v.tags.includes('pricing'))) impact = 'high';
+            else if (v.sentiment === 'positive' && v.product === 'asus') impact = 'high';
+
+            // Generate SPM action recommendation
+            let action = '持續追蹤後續發展';
+            if (v.product === 'hp') action = '分析 HP 策略，找出 PN70 差異化切入點';
+            else if (v.product === 'asus' && v.sentiment === 'positive') action = '將此正面回饋納入行銷素材';
+            else if (v.halo_category === 'rocm_feedback') action = '與 AMD 團隊確認 ROCm 支援進度';
+            else if (v.tags && v.tags.includes('pricing')) action = '納入 PN70 定價策略參考';
+            else if (v.product === 'dell' || v.product === 'lenovo') action = '把握競爭對手缺位的市場窗口';
+
+            return {
+                tag: tag,
+                title: v.title,
+                paragraphs: generateParagraphs(v, productName),
+                impact: impact,
+                action: action,
+                source: v.source === 'reddit' ? (v.subreddit || 'Reddit') : v.source === 'forum' ? (v.forum_name || 'Forum') : v.source === 'news' ? (v.outlet || 'News') : (v.platform || 'Social'),
+                url: v.url,
+                sentiment: v.sentiment
+            };
+        });
+
+        // Generate headline from most impactful item
+        const topItem = briefItems[0];
+        const dateObj = new Date(date);
+        const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
+
+        return {
+            date: date,
+            dateDisplay: dateStr,
+            count: briefItems.length,
+            items: briefItems
+        };
+    });
+}
+
+function generateParagraphs(voiceItem, productName) {
+    // Generate 2-3 paragraphs of analysis text in TechOrange style
+    // with bold keywords for emphasis
+    const paragraphs = [];
+
+    // Main content paragraph - use the voice data text directly
+    paragraphs.push(voiceItem.text);
+
+    // Analysis paragraph - generate competitive insight
+    if (voiceItem.product === 'hp') {
+        paragraphs.push(`對 ASUS NUC PN70 而言，**HP Z2 Mini G1a** 是目前最直接的 Tier-1 OEM 競爭對手。HP 在**企業認證、安全性和通路深度**上具備優勢，但 PN70 的 **192GB 記憶體上限**和**可堆疊設計**是 HP 目前無法匹敵的差異化特點。`);
+    } else if (voiceItem.product === 'gmktec' || voiceItem.product === 'beelink' || voiceItem.product === 'minisforum') {
+        paragraphs.push(`ODM 品牌在 Strix Halo 市場的快速佈局值得關注。**${productName}** 的出貨速度快於 Tier-1 OEM，但在**韌體品質、ISV 認證、企業管理**等方面仍有明顯差距。這正是 ASUS NUC 品牌價值的核心所在。`);
+    } else if (voiceItem.product === 'dell' || voiceItem.product === 'lenovo') {
+        paragraphs.push(`**${productName}** 目前尚未進入 Strix Halo 市場，這為 ASUS NUC PN70 創造了寶貴的**市場窗口期**。在 Dell 和 Lenovo 推出對應產品之前，PN70 有機會率先建立 Strix Halo 迷你 PC 在企業市場的品牌認知。`);
+    } else if (voiceItem.halo_category === 'llm_performance') {
+        paragraphs.push(`Strix Halo 的 **128GB 統一記憶體架構**消除了傳統 PCIe 頻寬瓶頸，使本地 LLM 推論成為可能。PN70 更進一步支援 **192GB**，這意味著可以在不犧牲精度的情況下跑完整的大型模型，這在**企業 AI 部署**場景中是決定性優勢。`);
+    } else if (voiceItem.halo_category === 'rocm_feedback') {
+        paragraphs.push(`ROCm 軟體生態的成熟度直接影響 Strix Halo 平台的 AI 應用體驗。目前 **gfx1151（RDNA 3.5）的支援度仍待改善**，這是 PN70 上市前需要與 AMD 密切協調的關鍵議題。建議 SPM 團隊持續追蹤 ROCm 更新進度，確保 PN70 出貨時提供穩定的**開箱即用 AI 開發體驗**。`);
+    }
+
+    return paragraphs;
+}
+
+// Static fallback briefs (used when VOICE_DATA hasn't loaded yet)
+const STATIC_BRIEFS = [];
+
+// ==========================================
 // PRICING DATA FOR CHARTS
 // ==========================================
 const PRICING_DATA = [

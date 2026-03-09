@@ -449,6 +449,158 @@ body {
     gap: 8px;
 }
 
+/* ========== DAILY BRIEF / NEWSLETTER ========== */
+.brief-header {
+    max-width: 780px;
+    margin: 0 auto 24px;
+}
+.brief-tag {
+    display: inline-block;
+    background: var(--accent-orange);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+.brief-headline {
+    font-size: 1.6rem;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+.brief-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+.brief-author { color: var(--primary); }
+
+.brief-nav {
+    max-width: 780px;
+    margin: 0 auto 20px;
+    display: flex;
+    gap: 8px;
+}
+.brief-nav-btn {
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.brief-nav-btn:hover { background: var(--bg-card-hover); color: var(--text); }
+.brief-nav-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.brief-intro {
+    max-width: 780px;
+    margin: 0 auto 28px;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+.brief-intro strong { color: var(--primary); }
+
+.brief-content {
+    max-width: 780px;
+    margin: 0 auto;
+}
+
+.brief-article {
+    margin-bottom: 40px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+}
+.brief-article:last-child {
+    border-bottom: none;
+}
+
+.brief-article-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.brief-article-text {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+.brief-article-text strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.brief-action-box {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 16px 0 12px;
+    font-size: 0.85rem;
+    background: rgba(0, 174, 239, 0.06);
+    border-left: 3px solid var(--primary);
+}
+.brief-action-box.impact-high {
+    background: rgba(248, 81, 73, 0.06);
+    border-left-color: var(--negative);
+}
+.brief-action-box.impact-medium {
+    background: rgba(210, 153, 34, 0.06);
+    border-left-color: var(--neutral);
+}
+.brief-action-box.impact-low {
+    background: rgba(63, 185, 80, 0.06);
+    border-left-color: var(--positive);
+}
+.brief-action-label {
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.brief-action-text {
+    color: var(--text-muted);
+}
+
+.brief-source {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+}
+.brief-source a {
+    color: var(--accent-blue);
+    text-decoration: none;
+}
+.brief-source a:hover { text-decoration: underline; }
+
+.brief-footer-note {
+    max-width: 780px;
+    margin: 32px auto 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+.brief-footer-note p {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+
 /* ========== RESPONSIVE DESIGN ========== */
 
 /* Tablet */
